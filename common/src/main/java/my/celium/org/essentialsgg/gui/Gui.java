@@ -57,6 +57,10 @@ public final class Gui extends ChestMenu {
 
     @Override
     public void clicked(int slotIndex, int buttonNum, ContainerInput input, Player player) {
+        // The client already moved the icon it thinks it picked up (onto the cursor, or into the
+        // inventory on a shift-click): undo that first, before the action may close this menu.
+        setCarried(ItemStack.EMPTY);
+        sendAllDataToRemote();
         if (slotIndex >= 0 && slotIndex < size && player instanceof ServerPlayer serverPlayer
                 && (input == ContainerInput.PICKUP || input == ContainerInput.QUICK_MOVE)) {
             Consumer<Click> action = actions.get(slotIndex);
@@ -64,10 +68,9 @@ public final class Gui extends ChestMenu {
                 action.accept(new Click(serverPlayer, buttonNum == 1, input == ContainerInput.QUICK_MOVE));
             }
         }
-        // The client already moved the item it thinks it picked up: put everything back.
-        if (player.containerMenu == this) {
-            setCarried(ItemStack.EMPTY);
-            sendAllDataToRemote();
+        // Closed by the action: the inventory screen takes over, so resend the real inventory too.
+        if (player.containerMenu != this) {
+            player.inventoryMenu.sendAllDataToRemote();
         }
     }
 
