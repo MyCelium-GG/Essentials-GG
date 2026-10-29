@@ -1,0 +1,38 @@
+name: smoke
+
+# Starts the mod on every loader: a dev server, plus a dev client (on a
+# virtual display) that joins it and stays connected. Catches what unit tests
+# cannot: crashes at start-up, broken registration, players kicked on join.
+# The shared action lives in MyCel-Lib (.github/actions/mod-smoke).
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        loader: [fabric, neoforge, forge]
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up JDK 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+      - name: Start a dev server and join it with a dev client
+        uses: MyCelium-GG/MyCel-Lib/.github/actions/mod-smoke@v1
+        with:
+          loader: ${{ matrix.loader }}
+          mod-id: essentialsgg
+      - name: Keep the logs
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-${{ matrix.loader }}
+          path: build/smoke/${{ matrix.loader }}

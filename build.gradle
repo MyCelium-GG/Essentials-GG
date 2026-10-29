@@ -1,0 +1,8 @@
+plugins {
+    // Fabric Loom for non-obfuscated MC 26.x (Gradle 9 line).
+    id 'net.fabricmc.fabric-loom' version '1.18.2' apply false
+    // NeoForge ModDev for MC 26.x (Gradle 9 line).
+    id 'net.neoforged.moddev' version '2.0.147' apply false
+    // ForgeGradle 7 for Forge 26.x (Gradle 9 line, new mavenizer DSL).
+    id 'net.minecraftforge.gradle' version '[7.0.17,8)' apply false
+}

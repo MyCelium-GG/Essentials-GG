@@ -1,0 +1,43 @@
+plugins {
+    id 'modloader-loader'
+    id 'net.fabricmc.fabric-loom'
+}
+
+description = rootProject.description
+
+dependencies {
+    // MC 26.1+ ships non-obfuscated: Loom 1.18+ needs no mappings layer.
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+    // Mycel platform implementation: on the run classpath (services are
+    // discovered via ServiceLoader; the mod calls Mycel.initialize() itself).
+    // Declared as a real mod dependency in fabric.mod.json for production.
+    localRuntime "${mycel_coordinates}"
+}
+
+loom {
+    def aw = project(':common').file("src/main/resources/${mod_id}.accesswidener")
+    if (aw.exists()) {
+        accessWidenerPath.set(aw)
+    }
+    runs {
+        client {
+            client()
+            setConfigName('Fabric Client')
+            ideConfigGenerated(true)
+            runDir('runs/client')
+            // -PquickPlay=localhost:25565 joins that server right after start-up.
+            if (project.hasProperty('quickPlay')) {
+                programArgs('--quickPlayMultiplayer', project.property('quickPlay'))
+            }
+        }
+        server {
+            server()
+            setConfigName('Fabric Server')
+            ideConfigGenerated(true)
+            runDir('runs/server')
+        }
+    }
+}
+

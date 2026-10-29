@@ -1,0 +1,45 @@
+plugins {
+    id 'modloader-loader'
+    id 'net.neoforged.moddev'
+}
+
+description = rootProject.description
+
+dependencies {
+    // Mycel platform implementation: runtime only (entrypoints + services).
+    // Declared as a real mod dependency in META-INF/neoforge.mods.toml for production.
+    runtimeOnly "${mycel_coordinates}"
+}
+
+neoForge {
+    version = neoforge_version
+    // Automatically enable NeoForge AccessTransformers if the file exists
+    def at = project(':common').file('src/main/resources/META-INF/accesstransformer.cfg')
+    if (at.exists()) {
+        accessTransformers.from(at.absolutePath)
+    }
+    runs {
+        configureEach {
+            systemProperty('neoforge.enabledGameTestNamespaces', mod_id)
+            ideName = "NeoForge ${it.name.capitalize()} (${project.path})"
+        }
+        client {
+            client()
+            gameDirectory = this.mkdir(this.file('runs/client'))
+            // -PquickPlay=localhost:25565 joins that server right after start-up.
+            if (project.hasProperty('quickPlay')) {
+                programArguments.addAll('--quickPlayMultiplayer', project.property('quickPlay').toString())
+            }
+        }
+        server {
+            server()
+            gameDirectory = this.mkdir(this.file('runs/server'))
+        }
+    }
+    mods {
+        "${mod_id}" {
+            sourceSet sourceSets.main
+        }
+    }
+}
+

@@ -1,0 +1,39 @@
+plugins {
+    id 'modloader-loader'
+    id 'net.minecraftforge.gradle' version '[7.0.17,8)'
+}
+
+description = rootProject.description
+
+repositories {
+    minecraft.mavenizer(it)
+    maven fg.forgeMaven
+    maven fg.minecraftLibsMaven
+    mavenCentral()
+}
+
+dependencies {
+    implementation minecraft.dependency("net.minecraftforge:forge:${forge_version}")
+    // Mycel platform implementation: runtime only (entrypoints + services).
+    // Declared as a real mod dependency in META-INF/mods.toml for production.
+    // (Mycel 1.0.3+ ships a clean POM; older lines needed an exclusion here
+    // for FG7's leaked game dependency.)
+    runtimeOnly "${mycel_coordinates}"
+}
+
+minecraft {
+    runs {
+        register('client') {
+            workingDir = layout.projectDirectory.dir('runs/client')
+            // -PquickPlay=localhost:25565 joins that server right after start-up.
+            if (project.hasProperty('quickPlay')) {
+                args '--quickPlayMultiplayer', project.property('quickPlay').toString()
+            }
+        }
+        register('server') {
+            workingDir = layout.projectDirectory.dir('runs/server')
+            args '--nogui'
+        }
+    }
+}
+

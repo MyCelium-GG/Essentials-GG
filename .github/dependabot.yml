@@ -1,0 +1,18 @@
+# Weekly pull requests for outdated GitHub Actions and Gradle plugins, one
+# per kind so a week's updates arrive together.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      gradle:
+        patterns: ["*"]

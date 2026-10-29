@@ -1,0 +1,77 @@
+plugins {
+    id 'modloader-common'
+    id 'net.neoforged.moddev'
+}
+
+description = rootProject.description
+
+neoForge {
+    neoFormVersion = neo_form_version
+    // Automatically enable AccessTransformers if the file exists
+    def at = file('src/main/resources/META-INF/accesstransformer.cfg')
+    if (at.exists()) {
+        accessTransformers.from(at.absolutePath)
+    }
+}
+
+// Version-specific code, one folder per Minecraft line (only where the lines
+// differ); -Pmc picks the line (see settings.gradle).
+def mcSources = file("src/mc/${minecraft_line}/java")
+if (mcSources.isDirectory()) {
+    sourceSets.main.java.srcDir(mcSources)
+}
+
+dependencies {
+    // Mycel shared library (common API) via JitPack. `api` so loader modules
+    // compiling the common sources see it too.
+    api "${mycel_coordinates}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${rootProject.junit_version}"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
+// Unit tests need Minecraft + Mycel classes too.
+configurations.named('testCompileClasspath') {
+    extendsFrom(configurations.getByName('modDevCompileDependencies'))
+}
+configurations.named('testRuntimeClasspath') {
+    extendsFrom(configurations.getByName('modDevRuntimeDependencies'))
+}
+
+configurations {
+    commonJava {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+    commonResources {
+        canBeResolved = false
+        canBeConsumed = true
+    }
+}
+
+artifacts {
+    sourceSets.main.java.srcDirs.findAll { it.isDirectory() }.each { commonJava it }
+    commonResources sourceSets.main.resources.sourceDirectories.singleFile
+}
+
+// Loader attribute so loader modules consume the right variant.
+def loaderAttribute = Attribute.of('io.github.mcgradleconventions.loader', String)
+['apiElements', 'runtimeElements', 'sourcesElements', 'javadocElements'].each { variant ->
+    configurations.named("$variant") {
+        attributes {
+            attribute(loaderAttribute, 'common')
+        }
+    }
+}
+sourceSets.configureEach {
+    [it.compileClasspathConfigurationName, it.runtimeClasspathConfigurationName].each { variant ->
+        configurations.named("$variant") {
+            attributes {
+                attribute(loaderAttribute, 'common')
+            }
+        }
+    }
+}

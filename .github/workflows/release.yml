@@ -1,0 +1,138 @@
+name: release
+
+# Cut a release by pushing a version tag (e.g. 1.0.0): builds the three loader
+# jars for every Minecraft line (the default from gradle.properties plus one
+# per mc/*.properties), uploads each line to CurseForge (project id and side in
+# gradle.properties, token in the CURSEFORGE_TOKEN secret) and Modrinth
+# (modrinth_project_id and modrinth_environment, token in MODRINTH_TOKEN) for
+# its game versions, and attaches all jars to one GitHub Release. Run it by
+# hand with an existing tag to (re)publish that version.
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish
+        required: true
+      curseforge:
+        description: Upload to CurseForge
+        type: boolean
+        default: true
+      modrinth:
+        description: Upload to Modrinth
+        type: boolean
+        default: true
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # "" is the default line (gradle.properties); keep in sync with mc/.
+        mc: ["", "26.2", "26.1"]
+    name: publish ${{ matrix.mc || 'default' }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - name: Set up JDK 25
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 25
+      - name: Build loader jars
+        run: ./gradlew :fabric:build :forge:build :neoforge:build --no-daemon ${{ matrix.mc && format('-Pmc={0}', matrix.mc) || '' }}
+      # MC_LINE names the jars; MC_VERSIONS are the game versions they are
+      # published for (minecraft_versions, else minecraft_version).
+      - name: Minecraft versions
+        env:
+          MC: ${{ matrix.mc }}
+        run: |
+          get() {
+            local value=""
+            [ -n "$MC" ] && value=$(grep -E "^$1=" "mc/$MC.properties" | head -1 | cut -d= -f2- || true)
+            [ -n "$value" ] || value=$(grep -E "^$1=" gradle.properties | head -1 | cut -d= -f2- || true)
+            echo "$value" | xargs
+          }
+          echo "MC_LINE=$(get minecraft_line)" >> "$GITHUB_ENV"
+          versions=$(get minecraft_versions)
+          echo "MC_VERSIONS=${versions:-$(get minecraft_version)}" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: jars-${{ env.MC_LINE }}
+          path: |
+            fabric/build/libs/essentialsgg-fabric-${{ env.MC_LINE }}-*.jar
+            forge/build/libs/essentialsgg-forge-${{ env.MC_LINE }}-*.jar
+            neoforge/build/libs/essentialsgg-neoforge-${{ env.MC_LINE }}-*.jar
+          if-no-files-found: error
+      - name: Upload to CurseForge
+        if: ${{ github.event_name == 'push' || inputs.curseforge }}
+        uses: MyCelium-GG/MyCel-Lib/.github/actions/curseforge-upload@v1
+        with:
+          token: ${{ secrets.CURSEFORGE_TOKEN }}
+          name: Essentials GG
+          version: ${{ env.TAG }}
+          minecraft-version: ${{ env.MC_VERSIONS }}
+          files: |
+            fabric=fabric/build/libs/essentialsgg-fabric-${{ env.MC_LINE }}-*.jar
+            forge=forge/build/libs/essentialsgg-forge-${{ env.MC_LINE }}-*.jar
+            neoforge=neoforge/build/libs/essentialsgg-neoforge-${{ env.MC_LINE }}-*.jar
+      - name: Upload to Modrinth
+        if: ${{ github.event_name == 'push' || inputs.modrinth }}
+        uses: MyCelium-GG/MyCel-Lib/.github/actions/modrinth-upload@v1
+        with:
+          token: ${{ secrets.MODRINTH_TOKEN }}
+          name: Essentials GG
+          version: ${{ env.TAG }}
+          minecraft-version: ${{ env.MC_VERSIONS }}
+          files: |
+            fabric=fabric/build/libs/essentialsgg-fabric-${{ env.MC_LINE }}-*.jar
+            forge=forge/build/libs/essentialsgg-forge-${{ env.MC_LINE }}-*.jar
+            neoforge=neoforge/build/libs/essentialsgg-neoforge-${{ env.MC_LINE }}-*.jar
+
+  github:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: jars-*
+          path: jars
+          merge-multiple: true
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "GitHub Release $TAG already exists; leaving it as is."
+            exit 0
+          fi
+          gh release create "$TAG" \
+            --title "Essentials GG $TAG" \
+            --notes "For Minecraft 26.3, 26.2 and 26.1 (26.1-26.1.2) on Fabric, Forge and NeoForge: pick the jar named for your loader and Minecraft. Requires Mycel and Java 25." \
+            $(find jars -name 'essentialsgg-*.jar' | grep -vE -- '-(sources|javadoc)\.jar$' | sort)
+
+  # Only for new tags: re-running an old release by hand must not announce it
+  # again.
+  announce:
+    needs: github
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Announce on Discord
+        uses: MyCelium-GG/MyCel-Lib/.github/actions/discord-announce@v1
+        with:
+          webhook: ${{ secrets.DISCORD_WEBHOOK }}
+          version: ${{ env.TAG }}
