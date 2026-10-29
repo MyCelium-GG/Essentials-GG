@@ -1,32 +1,32 @@
 """Essentials GG icon: a 16x16 Minecraft-style healing potion on a blurred sky.
 
-Original pixel art (not Mojang's texture). Usage: make_icon.py OUT.png
+Original pixel art in the vanilla style (not Mojang's texture). Usage: make_icon.py OUT.png
 """
 import random, sys
 from PIL import Image, ImageDraw, ImageFilter
 
 SPRITE = [
     "................",
-    "......oooo......",
-    ".....occcco.....",
-    ".....oCCCCo.....",
-    "......owGo......",
-    "......owGo......",
-    ".....owggGo.....",
-    "....owggggGo....",
-    "...owlllllllo...",
-    "..owrrrrrrrrRo..",
-    "..orrbrrrrrRRo..",
-    "..olrrrrrbRRRo..",
-    "...olrrrrRRRo...",
-    "....oRRRRRRo....",
-    ".....oooooo.....",
+    "................",
+    "......ccck......",
+    ".....gCCCkg.....",
+    "......g..m......",
+    "......g..m......",
+    ".....g....m.....",
+    "....gwRRRRDm....",
+    "...gwBRRRRRDm...",
+    "...gBBRRRRDDm...",
+    "...gBRRRRRwDm...",
+    "...mRRRRRDDXm...",
+    "....mDRRDDXm....",
+    ".....mmmmmm.....",
+    "................",
     "................",
 ]
 COLORS = {
-    'o': (34, 26, 38), 'c': (176, 124, 74), 'C': (124, 84, 48),
-    'w': (255, 255, 255), 'g': (206, 232, 246), 'G': (152, 192, 216),
-    'l': (255, 110, 110), 'r': (232, 40, 50), 'R': (172, 22, 40), 'b': (255, 160, 160),
+    'c': (214, 116, 70), 'C': (196, 98, 58), 'k': (150, 66, 40),
+    'g': (196, 224, 242), 'w': (232, 244, 252), 'm': (104, 152, 204),
+    'B': (255, 44, 44), 'R': (204, 26, 38), 'D': (156, 16, 30), 'X': (106, 10, 22),
 }
 
 random.seed(7)
@@ -47,5 +47,10 @@ for y, row in enumerate(SPRITE):
     for x, ch in enumerate(row):
         if ch != '.':
             sprite.putpixel((x, y), COLORS[ch] + (255,))
-bg.alpha_composite(sprite.resize((512, 512), Image.NEAREST))
+big = sprite.resize((512, 512), Image.NEAREST)
+# soft dark halo so the pale glass edge stands out against the sky
+halo = Image.new('RGBA', (512, 512), (20, 24, 40, 0))
+halo.putalpha(big.getchannel('A').point(lambda a: 150 if a else 0))
+bg.alpha_composite(halo.filter(ImageFilter.GaussianBlur(18)))
+bg.alpha_composite(big)
 bg.convert('RGB').save(sys.argv[1], optimize=True)
