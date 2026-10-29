@@ -64,7 +64,7 @@ public final class EssentialsGG {
 
     public static final ModMetadata META = ModMetadata.builder(ID, "Essentials GG", "1.0.0")
             .author("MyCelium")
-            .website("https://modrinth.com/mod/essentials-gg")
+            .website("https://www.curseforge.com/minecraft/mc-mods/essentials-gg")
             .updateUrl("https://wiki.mycelium-gg.org/updates/essentialsgg.json")
             .build();
 

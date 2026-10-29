@@ -3,8 +3,7 @@ name: release
 # Cut a release by pushing a version tag (e.g. 1.0.0): builds the three loader
 # jars for every Minecraft line (the default from gradle.properties plus one
 # per mc/*.properties), uploads each line to CurseForge (project id and side in
-# gradle.properties, token in the CURSEFORGE_TOKEN secret) and Modrinth
-# (modrinth_project_id and modrinth_environment, token in MODRINTH_TOKEN) for
+# gradle.properties, token in the CURSEFORGE_TOKEN secret) for
 # its game versions, and attaches all jars to one GitHub Release. Run it by
 # hand with an existing tag to (re)publish that version.
 on:
@@ -18,10 +17,6 @@ on:
         required: true
       curseforge:
         description: Upload to CurseForge
-        type: boolean
-        default: true
-      modrinth:
-        description: Upload to Modrinth
         type: boolean
         default: true
 
@@ -76,18 +71,6 @@ jobs:
         uses: MyCelium-GG/MyCel-Lib/.github/actions/curseforge-upload@v1
         with:
           token: ${{ secrets.CURSEFORGE_TOKEN }}
-          name: Essentials GG
-          version: ${{ env.TAG }}
-          minecraft-version: ${{ env.MC_VERSIONS }}
-          files: |
-            fabric=fabric/build/libs/essentialsgg-fabric-${{ env.MC_LINE }}-*.jar
-            forge=forge/build/libs/essentialsgg-forge-${{ env.MC_LINE }}-*.jar
-            neoforge=neoforge/build/libs/essentialsgg-neoforge-${{ env.MC_LINE }}-*.jar
-      - name: Upload to Modrinth
-        if: ${{ github.event_name == 'push' || inputs.modrinth }}
-        uses: MyCelium-GG/MyCel-Lib/.github/actions/modrinth-upload@v1
-        with:
-          token: ${{ secrets.MODRINTH_TOKEN }}
           name: Essentials GG
           version: ${{ env.TAG }}
           minecraft-version: ${{ env.MC_VERSIONS }}
