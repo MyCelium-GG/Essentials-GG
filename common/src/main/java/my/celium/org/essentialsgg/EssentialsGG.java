@@ -63,7 +63,7 @@ import net.minecraft.world.entity.LivingEntity;
 public final class EssentialsGG {
     public static final String ID = "essentialsgg";
 
-    public static final ModMetadata META = ModMetadata.builder(ID, "Essentials GG", "1.0.0")
+    public static final ModMetadata META = ModMetadata.builder(ID, "Essentials GG", "1.1.0")
             .author("MyCelium")
             .website("https://www.curseforge.com/minecraft/mc-mods/essentials-gg")
             .updateUrl("https://wiki.mycelium-gg.org/updates/essentialsgg.json")
