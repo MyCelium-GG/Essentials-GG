@@ -21,6 +21,8 @@ import my.celium.org.essentialsgg.text.Lang;
 import net.minecraft.commands.Commands;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.TickTask;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.SimpleMenuProvider;
@@ -113,8 +115,10 @@ public final class KitEditor {
         }
         Gui.Entry create = new Gui.Entry(Gui.icon(Items.NETHER_STAR, Lang.get(player, "kited.create"),
                 List.of(Lang.get(player, "kited.create_hint"))), click -> askName(click.player(), null));
-        Gui.paged(player, Lang.get(player, "kited.list_title"), entries, 0,
-                Lang.get(player, "menu.previous"), Lang.get(player, "menu.next"), create);
+        if (entries.isEmpty()) {
+            entries.add(new Gui.Entry(Gui.icon(Items.PAPER, Lang.get(player, "menu.kits_empty"), List.of()), null));
+        }
+        Gui.paged(player, Lang.get(player, "kited.list_title"), entries, 0, null, create, null);
     }
 
     private static List<Component> summary(ServerPlayer player, ServerData.Kit kit, boolean hint) {
@@ -214,12 +218,11 @@ public final class KitEditor {
                     Store.markDirty();
                     editor(click.player(), name);
                 });
-        menu.button(38, Gui.icon(Items.NAME_TAG, Lang.get(player, "kited.rename"), List.of(Lang.get(player, "kited.rename_hint"))),
+        menu.button(40, Gui.icon(Items.NAME_TAG, Lang.get(player, "kited.rename"), List.of(Lang.get(player, "kited.rename_hint"))),
                 click -> askName(click.player(), name));
-        menu.button(40, Gui.icon(Items.ARROW, Lang.get(player, "menu.back"), List.of()), click -> list(click.player()));
-        menu.button(42, Gui.icon(Items.BARRIER, Lang.get(player, "kited.delete"), List.of(Lang.get(player, "kited.delete_hint"))),
+        menu.button(44, Gui.icon(Items.BARRIER, Lang.get(player, "kited.delete"), List.of(Lang.get(player, "kited.delete_hint"))),
                 click -> confirmDelete(click.player(), name));
-        menu.fill().open(player);
+        menu.back(player, KitEditor::list).fill().open(player);
     }
 
     private static void cooldown(ServerPlayer player, String name) {
@@ -229,7 +232,7 @@ public final class KitEditor {
             return;
         }
         Gui.Builder menu = Gui.builder(4, Lang.get(player, "kited.cooldown_title", "kit", name));
-        int[] slots = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21};
+        int[] slots = {10, 11, 12, 13, 14, 15, 16, 20, 21, 23};
         for (int i = 0; i < PRESETS.length; i++) {
             long seconds = PRESETS[i];
             List<Component> lore = new ArrayList<>();
@@ -237,15 +240,16 @@ public final class KitEditor {
                 lore.add(Lang.get(player, "kited.selected"));
             }
             lore.add(Lang.get(player, "kited.click_choose"));
-            menu.button(slots[i], Gui.icon(Gui.item(PRESET_ICONS[i], Items.PAPER),
-                    Lang.get(player, "kited.preset", "value", cooldownText(player, seconds)), lore), click -> {
+            ItemStack icon = Gui.icon(Gui.item(PRESET_ICONS[i], Items.PAPER),
+                    Lang.get(player, "kited.preset", "value", cooldownText(player, seconds)), lore);
+            menu.button(slots[i], kit.cooldown == seconds ? Gui.glow(icon) : icon, click -> {
                         kit.cooldown = seconds;
                         Store.markDirty();
                         Lang.send(click.player(), "kited.cooldown_set", "kit", name, "value", cooldownText(click.player(), seconds));
                         editor(click.player(), name);
                     });
         }
-        menu.button(23, Gui.icon(Items.NAME_TAG, Lang.get(player, "kited.custom"), List.of(Lang.get(player, "kited.custom_hint"))),
+        menu.button(24, Gui.icon(Items.NAME_TAG, Lang.get(player, "kited.custom"), List.of(Lang.get(player, "kited.custom_hint"))),
                 click -> Prompt.ask(click.player(), "kited.ask_cooldown", typed -> {
                     long seconds = Kits.cooldown(typed);
                     if (seconds == Long.MIN_VALUE) {
@@ -257,28 +261,25 @@ public final class KitEditor {
                     }
                     editor(click.player(), name);
                 }));
-        menu.button(31, Gui.icon(Items.ARROW, Lang.get(player, "menu.back"), List.of()), click -> editor(click.player(), name));
-        menu.fill().open(player);
+        menu.back(player, p -> editor(p, name)).fill().open(player);
     }
 
     private static void confirmDelete(ServerPlayer player, String name) {
-        Gui.Builder menu = Gui.builder(3, Lang.get(player, "kited.delete_title", "kit", name));
-        menu.button(11, Gui.icon(Gui.item("minecraft:red_wool", Items.BARRIER), Lang.get(player, "kited.delete_confirm", "kit", name),
-                List.of(Lang.get(player, "kited.delete_warning"))), click -> {
+        Gui.confirm(player, Lang.get(player, "kited.delete_title", "kit", name), Lang.get(player, "kited.delete_confirm", "kit", name),
+                List.of(Lang.get(player, "kited.delete_warning")), Lang.get(player, "kited.delete_cancel"),
+                p -> {
                     if (Store.server().kits.remove(name) != null) {
                         Store.markDirty();
-                        Lang.send(click.player(), "kit.deleted", "kit", name);
+                        Lang.send(p, "kit.deleted", "kit", name);
                     }
-                    list(click.player());
-                });
-        menu.button(15, Gui.icon(Gui.item("minecraft:lime_wool", Items.ARROW), Lang.get(player, "kited.delete_cancel"), List.of()),
-                click -> editor(click.player(), name));
-        menu.fill().open(player);
+                    list(p);
+                },
+                p -> editor(p, name));
     }
 
     // ---------------------------------------------------------------- contents
 
-    /** A real chest with the kit's items; closing it saves what is inside. */
+    /** A real chest with the kit's items; closing it saves what is inside and returns to the kit. */
     private static void contents(ServerPlayer player, String name) {
         ServerData.Kit kit = Store.server().kits.get(name);
         if (kit == null) {
@@ -317,6 +318,13 @@ public final class KitEditor {
             kit.items = items;
             Store.markDirty();
             Lang.send(serverPlayer, "kited.saved", "kit", name, "count", items.size());
+            // Still closing: the editor can only open once this menu is gone.
+            MinecraftServer server = serverPlayer.level().getServer();
+            server.schedule(new TickTask(server.getTickCount() + 1, () -> {
+                if (!serverPlayer.hasDisconnected() && serverPlayer.containerMenu == serverPlayer.inventoryMenu) {
+                    editor(serverPlayer, name);
+                }
+            }));
         }
     }
 }

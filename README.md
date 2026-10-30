@@ -53,6 +53,7 @@ Built on [Mycel](https://github.com/MyCelium-GG/MyCel-Lib) (`my.celium.org`).
 | Module | Commands |
 |---|---|
 | teleport | `/tpa`, `/tpahere`, `/tpaccept`, `/tpdeny`, `/tpacancel`, `/tptoggle`, `/back`, `/top`, `/tphere`, `/tpall` |
+| menu | `/menu`: leads to the homes, warps, kits and random teleport menus |
 | homes | `/home [name]`, `/sethome [name]`, `/delhome <name>`, `/homes [player]` (menu) |
 | warps | `/warp [name]` (no name: menu), `/setwarp <name> [restricted]`, `/delwarp <name>` |
 | spawn | `/spawn [player]`, `/setspawn [firstjoin]` |

@@ -142,6 +142,16 @@ public final class Cmd {
         return s == null || s.enabled;
     }
 
+    /** Whether {@code player} could run the command {@code name}: registered, switched on and permitted. */
+    public static boolean usable(ServerPlayer player, String name) {
+        for (Def def : DEFS) {
+            if (def.name.equals(name)) {
+                return def.module.enabled() && isEnabled(name) && Perms.has(player, def.perm);
+            }
+        }
+        return false;
+    }
+
     /**
      * Registers every enabled command of every enabled module. {@code /ess}
      * gets its own subcommands plus only the commands whose name was taken,

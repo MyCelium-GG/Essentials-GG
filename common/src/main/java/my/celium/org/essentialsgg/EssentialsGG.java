@@ -21,6 +21,7 @@ import my.celium.org.essentialsgg.module.Chat;
 import my.celium.org.essentialsgg.module.Discord;
 import my.celium.org.essentialsgg.module.Economy;
 import my.celium.org.essentialsgg.module.Homes;
+import my.celium.org.essentialsgg.module.Hub;
 import my.celium.org.essentialsgg.module.Info;
 import my.celium.org.essentialsgg.module.Kits;
 import my.celium.org.essentialsgg.module.Messaging;
@@ -144,6 +145,7 @@ public final class EssentialsGG {
         Sidebar.commands();
         Permissions.commands();
         KitEditor.commands();
+        Hub.commands();
 
         reload();
 

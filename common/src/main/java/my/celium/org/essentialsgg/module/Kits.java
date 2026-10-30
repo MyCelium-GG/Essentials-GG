@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 
 import com.google.gson.JsonElement;
@@ -252,46 +253,63 @@ public final class Kits {
     }
 
     static int menu(ServerPlayer player) {
+        return menu(player, null);
+    }
+
+    static int menu(ServerPlayer player, Consumer<ServerPlayer> back) {
         List<Gui.Entry> entries = new ArrayList<>();
-        for (Map.Entry<String, ServerData.Kit> entry : Store.server().kits.entrySet()) {
-            String name = entry.getKey();
-            ServerData.Kit kit = entry.getValue();
-            if (!mayUse(player, name, kit)) {
-                continue;
+        new TreeMap<>(Store.server().kits).forEach((name, kit) -> {
+            if (mayUse(player, name, kit)) {
+                long wait = wait(player, name, kit);
+                Component status = wait < 0 ? Lang.get(player, "menu.kit_claimed")
+                        : wait > 0 ? Lang.get(player, "menu.kit_wait", "time", Time.format(player, wait))
+                        : Lang.get(player, "menu.kit_ready");
+                List<Component> lore = List.of(status, Lang.get(player, "menu.kit_items", "count", kit.items.size()),
+                        Lang.get(player, wait == 0 ? "menu.kit_hint" : "menu.kit_hint_preview"));
+                entries.add(new Gui.Entry(Gui.icon(Gui.item(kit.icon, Items.CHEST), Lang.get(player, "menu.kit_name", "kit", name),
+                        lore), click -> {
+                            if (click.right()) {
+                                preview(click.player(), name, kit, p -> menu(p, back));
+                            } else if (wait != 0) {
+                                Gui.deny(click.player());
+                            } else {
+                                click.player().closeContainer();
+                                claim(click.player(), name, false);
+                            }
+                        }));
             }
-            long wait = wait(player, name, kit);
-            Component status = wait < 0 ? Lang.get(player, "menu.kit_claimed")
-                    : wait > 0 ? Lang.get(player, "menu.kit_wait", "time", Time.format(player, wait))
-                    : Lang.get(player, "menu.kit_ready");
-            List<Component> lore = List.of(status, Lang.get(player, "menu.kit_items", "count", kit.items.size()),
-                    Lang.get(player, "menu.kit_hint"));
-            entries.add(new Gui.Entry(Gui.icon(Gui.item(kit.icon, Items.CHEST), Lang.get(player, "menu.kit_name", "kit", name),
-                    lore), click -> {
-                        if (click.right()) {
-                            preview(click.player(), name, kit, Kits::menu);
-                        } else {
-                            click.player().closeContainer();
-                            claim(click.player(), name, false);
-                        }
-                    }));
-        }
+        });
         if (entries.isEmpty()) {
-            Lang.send(player, "kit.none");
-            return 0;
+            entries.add(new Gui.Entry(Gui.icon(Items.PAPER, Lang.get(player, "menu.kits_empty"), List.of()), null));
         }
-        Gui.paged(player, Lang.get(player, "menu.kits_title"), entries, 0,
-                Lang.get(player, "menu.previous"), Lang.get(player, "menu.next"), null);
+        Gui.paged(player, Lang.get(player, "menu.kits_title"), entries, 0, null, null, back);
         return 1;
     }
 
     static void preview(ServerPlayer player, String name, ServerData.Kit kit, Consumer<ServerPlayer> back) {
+        preview(player, name, kit, back, 0);
+    }
+
+    private static void preview(ServerPlayer player, String name, ServerData.Kit kit, Consumer<ServerPlayer> back, int page) {
         List<ItemStack> items = decode(player.level().getServer(), kit.items);
-        Gui.Builder menu = Gui.builder(Math.min(6, (items.size() + 8) / 9 + 1), Lang.get(player, "menu.kit_preview", "kit", name));
-        for (int i = 0; i < items.size() && i < menu.size() - 9; i++) {
-            menu.item(i, items.get(i));
+        int perPage = 45;
+        int pages = Math.max(1, (items.size() + perPage - 1) / perPage);
+        int from = page * perPage;
+        int shown = Math.min(perPage, items.size() - from);
+        Gui.Builder menu = Gui.builder(pages > 1 ? 6 : Math.max(2, (shown + 8) / 9 + 1), Lang.get(player, "menu.kit_preview", "kit", name));
+        for (int i = 0; i < shown; i++) {
+            menu.item(i, items.get(from + i));
         }
-        menu.button(menu.size() - 5, Gui.icon(Items.ARROW, Lang.get(player, "menu.back"), List.of()), click -> back.accept(click.player()));
-        menu.open(player);
+        int bottom = menu.size() - 9;
+        if (page > 0) {
+            menu.button(bottom + 3, Gui.icon(Items.ARROW, Lang.get(player, "menu.previous"), List.of()),
+                    click -> preview(click.player(), name, kit, back, page - 1));
+        }
+        if (page < pages - 1) {
+            menu.button(bottom + 5, Gui.icon(Items.ARROW, Lang.get(player, "menu.next"), List.of()),
+                    click -> preview(click.player(), name, kit, back, page + 1));
+        }
+        menu.back(player, back).bar().open(player);
     }
 
     public static void onFirstJoin(ServerPlayer player) {

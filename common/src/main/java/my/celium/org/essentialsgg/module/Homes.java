@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.Consumer;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
@@ -18,13 +20,16 @@ import my.celium.org.essentialsgg.data.Loc;
 import my.celium.org.essentialsgg.data.PlayerData;
 import my.celium.org.essentialsgg.data.Store;
 import my.celium.org.essentialsgg.gui.Gui;
+import my.celium.org.essentialsgg.gui.Prompt;
 import my.celium.org.essentialsgg.platform.Perms;
 import my.celium.org.essentialsgg.text.Lang;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 
 /**
@@ -85,7 +90,7 @@ public final class Homes {
                 .then(Commands.argument("name", StringArgumentType.string()).suggests(OWN_HOMES)
                         .executes(b.run(Cmd.self((p, c) -> delete(p, StringArgumentType.getString(c, "name")))))));
         Cmd.define("homes", Module.HOMES, "command.homes", 0, List.of("listhomes"), (root, b) -> root
-                .executes(b.run(Cmd.self((p, c) -> menu(p, Store.of(p), 0))))
+                .executes(b.run(Cmd.self((p, c) -> menu(p, Store.of(p), null))))
                 .then(Args.known("player").requires(s -> Perms.has(s, OTHERS))
                         .executes(b.run(Cmd.self(Homes::menuOther)))));
     }
@@ -122,7 +127,7 @@ public final class Homes {
         if (name == null) {
             name = homes.size() == 1 ? homes.keySet().iterator().next() : DEFAULT_NAME;
             if (!homes.containsKey(name)) {
-                return menu(player, owner, 0);
+                return menu(player, owner, null);
             }
         }
         String key = name.toLowerCase(Locale.ROOT);
@@ -139,9 +144,17 @@ public final class Homes {
         Teleports.go(player, () -> loc, p -> Lang.send(p, "home.arrived", "home", name));
     }
 
+    private static boolean validName(String name) {
+        return name.matches("[a-z0-9_-]{1," + MAX_NAME + "}");
+    }
+
+    private static String limitText(int limit) {
+        return limit == Integer.MAX_VALUE ? "∞" : String.valueOf(limit);
+    }
+
     private static int set(ServerPlayer player, String typed) {
         String name = typed.toLowerCase(Locale.ROOT);
-        if (!name.matches("[a-z0-9_-]{1," + MAX_NAME + "}") || name.contains(":")) {
+        if (!validName(name)) {
             Lang.send(player, "home.bad_name");
             return 0;
         }
@@ -155,7 +168,7 @@ public final class Homes {
         data.homes.put(name, Loc.of(player));
         Store.markDirty();
         Lang.send(player, moved ? "home.moved" : "home.set", "home", name,
-                "count", data.homes.size(), "limit", limit == Integer.MAX_VALUE ? "∞" : String.valueOf(limit));
+                "count", data.homes.size(), "limit", limitText(limit));
         return 1;
     }
 
@@ -166,6 +179,7 @@ public final class Homes {
             Lang.send(player, "home.unknown", "home", typed, "homes", String.join(", ", data.homes.keySet()));
             return 0;
         }
+        data.homeIcons.remove(name);
         Store.markDirty();
         Lang.send(player, "home.deleted", "home", name);
         return 1;
@@ -173,49 +187,139 @@ public final class Homes {
 
     private static int menuOther(ServerPlayer player, CommandContext<CommandSourceStack> context) {
         PlayerData owner = Args.known(context, "player");
-        return owner == null ? 0 : menu(player, owner, 0);
+        return owner == null ? 0 : menu(player, owner, null);
     }
 
-    private static int menu(ServerPlayer player, PlayerData owner, int page) {
-        if (owner.homes.isEmpty()) {
+    /** The menu of the player's own homes, returning to {@code back}. */
+    static void openOwn(ServerPlayer player, Consumer<ServerPlayer> back) {
+        menu(player, Store.of(player), back);
+    }
+
+    private static int menu(ServerPlayer player, PlayerData owner, Consumer<ServerPlayer> back) {
+        boolean own = owner.id.equals(player.getUUID());
+        if (owner.homes.isEmpty() && !own) {
             Lang.send(player, "home.none");
             return 0;
         }
-        boolean own = owner.id.equals(player.getUUID());
         List<Gui.Entry> entries = new ArrayList<>();
-        for (Map.Entry<String, Loc> home : owner.homes.entrySet()) {
-            Loc loc = home.getValue();
-            List<Component> lore = new ArrayList<>(List.of(
-                    Lang.get(player, "menu.location", "x", loc.blockX(), "y", loc.blockY(), "z", loc.blockZ(),
-                            "world", loc.dimName()),
-                    Lang.get(player, "menu.click_teleport")));
+        new TreeMap<>(owner.homes).forEach((name, loc) -> {
+            List<Component> lore = new ArrayList<>(Gui.where(player, loc));
+            lore.add(Lang.get(player, "menu.click_teleport"));
             if (own) {
-                lore.add(Lang.get(player, "menu.shift_delete"));
+                lore.add(Lang.get(player, "menu.click_manage"));
             }
-            entries.add(new Gui.Entry(Gui.icon(iconFor(loc), Lang.get(player, "menu.home_name", "home", home.getKey()), lore),
+            entries.add(new Gui.Entry(Gui.icon(iconFor(owner, name, loc), Lang.get(player, "menu.home_name", "home", name), lore),
                     click -> {
-                        click.player().closeContainer();
-                        if (own && click.shift()) {
-                            delete(click.player(), home.getKey());
+                        if (own && click.right()) {
+                            manage(click.player(), name, back);
                         } else {
-                            teleport(click.player(), home.getKey(), loc);
+                            click.player().closeContainer();
+                            teleport(click.player(), name, loc);
                         }
                     }));
+        });
+        if (entries.isEmpty()) {
+            entries.add(new Gui.Entry(Gui.icon(Items.PAPER, Lang.get(player, "menu.homes_empty"),
+                    List.of(Lang.get(player, "menu.homes_empty_hint"))), null));
         }
         int limit = own ? limit(player) : owner.homes.size();
-        Gui.Entry info = new Gui.Entry(Gui.icon(Items.BOOK, Lang.get(player, "menu.homes_info",
-                "count", owner.homes.size(), "limit", limit == Integer.MAX_VALUE ? "∞" : String.valueOf(limit)),
-                List.of()), click -> { });
+        ItemStack info = Gui.icon(Items.BOOK, Lang.get(player, "menu.homes_info",
+                "count", owner.homes.size(), "limit", limitText(limit)), List.of());
         Gui.paged(player, Lang.get(player, own ? "menu.homes_title" : "menu.homes_title_other", "player", owner.name),
-                entries, page, Lang.get(player, "menu.previous"), Lang.get(player, "menu.next"), info);
+                entries, 0, info, own ? setHere(player, owner, limit, back) : null, back);
         return 1;
     }
 
-    private static Item iconFor(Loc loc) {
-        return switch (loc.dimName()) {
+    /** The button that adds a home where the player stands, or says why it can't. */
+    private static Gui.Entry setHere(ServerPlayer player, PlayerData data, int limit, Consumer<ServerPlayer> back) {
+        if (data.homes.size() >= limit) {
+            return new Gui.Entry(Gui.icon(Items.BARRIER, Lang.get(player, "menu.home_limit"), List.of()), Gui.LOCKED);
+        }
+        return new Gui.Entry(Gui.icon(Gui.item("minecraft:lime_bed", Items.COMPASS), Lang.get(player, "menu.home_set_here"),
+                List.of(Lang.get(player, "menu.home_set_hint"))),
+                click -> Prompt.ask(click.player(), "menu.home_ask_name", typed -> {
+                    if (set(click.player(), typed) > 0) {
+                        menu(click.player(), Store.of(click.player()), back);
+                    }
+                }));
+    }
+
+    private static void manage(ServerPlayer player, String name, Consumer<ServerPlayer> back) {
+        PlayerData data = Store.of(player);
+        Loc loc = data.homes.get(name);
+        if (loc == null) {
+            menu(player, data, back);
+            return;
+        }
+        Consumer<ServerPlayer> list = p -> menu(p, Store.of(p), back);
+        Gui.builder(3, Lang.get(player, "menu.home_manage_title", "home", name))
+                .button(10, Gui.icon(Items.ENDER_PEARL, Lang.get(player, "menu.home_teleport"), Gui.where(player, loc)), click -> {
+                    click.player().closeContainer();
+                    teleport(click.player(), name, loc);
+                })
+                .button(12, Gui.icon(Items.NAME_TAG, Lang.get(player, "menu.home_rename"), List.of(Lang.get(player, "menu.home_rename_hint"))),
+                        click -> rename(click.player(), name, back))
+                .button(13, Gui.icon(iconFor(data, name, loc), Lang.get(player, "menu.home_icon"), List.of(Lang.get(player, "menu.home_icon_hint"))),
+                        click -> {
+                            ItemStack held = click.player().getMainHandItem();
+                            if (held.isEmpty()) {
+                                Gui.deny(click.player());
+                                Lang.send(click.player(), "menu.home_icon_hand");
+                                return;
+                            }
+                            data.homeIcons.put(name, BuiltInRegistries.ITEM.getKey(held.getItem()).toString());
+                            Store.markDirty();
+                            manage(click.player(), name, back);
+                        })
+                .button(14, Gui.icon(Items.COMPASS, Lang.get(player, "menu.home_move"), List.of(Lang.get(player, "menu.home_move_hint"))),
+                        click -> {
+                            set(click.player(), name);
+                            manage(click.player(), name, back);
+                        })
+                .button(16, Gui.icon(Items.BARRIER, Lang.get(player, "menu.home_delete"), List.of(Lang.get(player, "menu.home_delete_hint"))),
+                        click -> Gui.confirm(click.player(), Lang.get(click.player(), "menu.home_delete_title", "home", name),
+                                Lang.get(click.player(), "menu.home_delete_confirm", "home", name),
+                                List.of(Lang.get(click.player(), "menu.home_delete_warning")),
+                                Lang.get(click.player(), "menu.home_delete_cancel"),
+                                p -> {
+                                    delete(p, name);
+                                    list.accept(p);
+                                },
+                                p -> manage(p, name, back)))
+                .back(player, list).fill().open(player);
+    }
+
+    private static void rename(ServerPlayer player, String from, Consumer<ServerPlayer> back) {
+        Prompt.ask(player, "menu.home_ask_rename", typed -> {
+            PlayerData data = Store.of(player);
+            String name = typed.toLowerCase(Locale.ROOT);
+            if (!data.homes.containsKey(from)) {
+                menu(player, data, back);
+            } else if (!validName(name)) {
+                Lang.send(player, "home.bad_name");
+                manage(player, from, back);
+            } else if (data.homes.containsKey(name)) {
+                Lang.send(player, "home.name_taken", "home", name);
+                manage(player, from, back);
+            } else {
+                data.homes.put(name, data.homes.remove(from));
+                String icon = data.homeIcons.remove(from);
+                if (icon != null) {
+                    data.homeIcons.put(name, icon);
+                }
+                Store.markDirty();
+                Lang.send(player, "home.renamed", "from", from, "home", name);
+                manage(player, name, back);
+            }
+        }, "home", from);
+    }
+
+    private static Item iconFor(PlayerData owner, String name, Loc loc) {
+        Item fallback = switch (loc.dimName()) {
             case "the_nether" -> Items.NETHERRACK;
             case "the_end" -> Items.END_STONE;
             default -> Gui.item("minecraft:red_bed", Items.COMPASS);
         };
+        return Gui.item(owner.homeIcons.get(name), fallback);
     }
 }

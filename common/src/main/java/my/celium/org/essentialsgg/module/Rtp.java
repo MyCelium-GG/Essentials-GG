@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -131,6 +132,10 @@ public final class Rtp {
      * cooldown, plus the search radius.
      */
     private static int open(ServerPlayer player) {
+        return open(player, null);
+    }
+
+    static int open(ServerPlayer player, Consumer<ServerPlayer> back) {
         long wait = cooldownLeft(player);
         Gui.Builder menu = Gui.builder(3, Lang.get(player, "menu.rtp_title"));
         String[] worlds = {"overworld", "nether", "end"};
@@ -153,19 +158,16 @@ public final class Rtp {
                 lore.add(Lang.get(player, "menu.rtp_click"));
                 usable = true;
             }
-            boolean canGo = usable;
-            menu.button(slots[i], Gui.icon(item, Lang.get(player, "menu.rtp_" + world), lore), click -> {
-                if (canGo) {
-                    click.player().closeContainer();
-                    start(click.player(), world);
-                }
+            menu.button(slots[i], Gui.icon(item, Lang.get(player, "menu.rtp_" + world), lore), !usable ? Gui.LOCKED : click -> {
+                click.player().closeContainer();
+                start(click.player(), world);
             });
         }
         menu.item(22, Gui.icon(Items.COMPASS, Lang.get(player, "menu.rtp_info"), List.of(
                 Lang.get(player, "menu.rtp_info_radius", "min", minRadius.get(), "max", radius.get()),
                 Lang.get(player, "menu.rtp_info_cooldown", "time",
                         cooldownSeconds.get() == 0 ? "-" : Time.format(player, cooldownSeconds.get() * 1000L)))));
-        menu.fill().open(player);
+        menu.back(player, back).fill().open(player);
         return 1;
     }
 

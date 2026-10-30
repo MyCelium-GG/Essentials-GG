@@ -25,6 +25,8 @@ public final class PlayerData {
     public long lastSeen;
     public String lastIp;
     public Map<String, Loc> homes = new LinkedHashMap<>();
+    /** Home name -> item id shown in the homes menu; homes without one get an icon for their dimension. */
+    public Map<String, String> homeIcons = new LinkedHashMap<>();
     /** Where {@code /back} goes: before the last teleport, or the death spot. */
     public Loc back;
     public Loc logout;
@@ -93,6 +95,9 @@ public final class PlayerData {
     void repair() {
         if (homes == null) {
             homes = new LinkedHashMap<>();
+        }
+        if (homeIcons == null) {
+            homeIcons = new LinkedHashMap<>();
         }
         if (kits == null) {
             kits = new LinkedHashMap<>();

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.function.Consumer;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
@@ -46,7 +48,7 @@ public final class Warps {
 
     public static void commands() {
         Cmd.define("warp", Module.WARPS, "command.warp", 0, List.of("warps"), (root, b) -> root
-                .executes(b.run(Cmd.self((p, c) -> menu(p))))
+                .executes(b.run(Cmd.self((p, c) -> menu(p, null))))
                 .then(Commands.argument("name", StringArgumentType.word()).suggests(WARPS)
                         .executes(b.run(Cmd.self((p, c) -> warp(p, StringArgumentType.getString(c, "name")))))));
         Cmd.define("setwarp", Module.WARPS, "command.setwarp", 2, List.of("createwarp"), (root, b) -> root
@@ -102,31 +104,23 @@ public final class Warps {
         return 1;
     }
 
-    private static int menu(ServerPlayer player) {
+    static int menu(ServerPlayer player, Consumer<ServerPlayer> back) {
         List<Gui.Entry> entries = new ArrayList<>();
-        for (Map.Entry<String, ServerData.Warp> entry : Store.server().warps.entrySet()) {
-            String name = entry.getKey();
-            ServerData.Warp warp = entry.getValue();
-            if (!mayUse(player, name, warp)) {
-                continue;
+        new TreeMap<>(Store.server().warps).forEach((name, warp) -> {
+            if (mayUse(player, name, warp)) {
+                List<Component> lore = new ArrayList<>(Gui.where(player, warp.loc));
+                lore.add(Lang.get(player, "menu.click_teleport"));
+                entries.add(new Gui.Entry(Gui.icon(Gui.item(warp.icon, Items.ENDER_PEARL),
+                        Lang.get(player, "menu.warp_name", "warp", name), lore), click -> {
+                            click.player().closeContainer();
+                            warp(click.player(), name);
+                        }));
             }
-            Loc loc = warp.loc;
-            List<Component> lore = List.of(
-                    Lang.get(player, "menu.location", "x", loc.blockX(), "y", loc.blockY(), "z", loc.blockZ(),
-                            "world", loc.dimName()),
-                    Lang.get(player, "menu.click_teleport"));
-            entries.add(new Gui.Entry(Gui.icon(Gui.item(warp.icon, Items.ENDER_PEARL),
-                    Lang.get(player, "menu.warp_name", "warp", name), lore), click -> {
-                        click.player().closeContainer();
-                        warp(click.player(), name);
-                    }));
-        }
+        });
         if (entries.isEmpty()) {
-            Lang.send(player, "warp.none");
-            return 0;
+            entries.add(new Gui.Entry(Gui.icon(Items.PAPER, Lang.get(player, "menu.warps_empty"), List.of()), null));
         }
-        Gui.paged(player, Lang.get(player, "menu.warps_title"), entries, 0,
-                Lang.get(player, "menu.previous"), Lang.get(player, "menu.next"), null);
+        Gui.paged(player, Lang.get(player, "menu.warps_title"), entries, 0, null, null, back);
         return 1;
     }
 }

@@ -11,7 +11,7 @@ import my.celium.org.config.ConfigValue;
  * one needs a restart (commands are registered once).
  */
 public enum Module {
-    CORE("Admin commands (/ess reload, /ess migrate, /language). Always on.", true),
+    CORE("Admin commands (/ess reload, /ess migrate, /language) and /menu. Always on.", true),
     TELEPORT("/tpa, /tpahere, /tpaccept, /tpdeny, /back, /top, /tphere, /tpall and teleport warmups.", true),
     HOMES("/home, /sethome, /delhome and the homes menu.", true),
     WARPS("/warp, /setwarp, /delwarp and the warps menu.", true),
