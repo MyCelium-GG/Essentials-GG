@@ -24,7 +24,27 @@ env:
   TAG: ${{ inputs.tag || github.ref_name }}
 
 jobs:
+  # Nothing reaches players unless the versions agree and the mod starts on
+  # every loader and Minecraft line. A failed smoke job from a download hiccup:
+  # re-run the failed jobs and the release carries on.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: MyCelium-GG/MyCel-Lib/.github/actions/release-check@v1
+        with:
+          version: ${{ env.TAG }}
+
+  smoke:
+    needs: check
+    uses: ./.github/workflows/smoke.yml
+    with:
+      ref: ${{ inputs.tag || github.ref }}
+
   publish:
+    needs: smoke
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
