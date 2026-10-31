@@ -9,6 +9,8 @@ The server essentials, without the bloat: homes, warps, spawn, TPA, back, random
 - Six languages, chosen per player
 - LuckPerms supported
 
+![The /menu screen leading to homes, warps, kits and random teleport](https://wiki.mycelium-gg.org/essentialsgg/img/menu.png)
+
 ## Install
 
 Server side: install it on the server.
