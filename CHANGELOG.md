@@ -6,6 +6,12 @@ Essentials GG is versioned semantically (`MAJOR.MINOR.PATCH`).
 It runs on Minecraft 26.3, 26.2 and 26.1 (Fabric + Forge + NeoForge, Java 25) and requires
 [Mycel](https://github.com/MyCelium-GG/MyCel-Lib) (`my.celium.org`).
 
+## [1.1.1] - 2026-11-02
+
+### Changed
+- Settings screen: on/off settings now show their real state when it opens (fixed in Mycel).
+- Built against the newest Fabric API, Forge and NeoForge, including the first stable NeoForge for 26.3.
+
 ## [1.1.0] - 2026-10-30
 
 ### Added
