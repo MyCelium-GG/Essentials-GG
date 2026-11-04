@@ -63,7 +63,7 @@ import net.minecraft.world.entity.LivingEntity;
 public final class EssentialsGG {
     public static final String ID = "essentialsgg";
 
-    public static final ModMetadata META = ModMetadata.builder(ID, "Essentials GG", "1.1.1")
+    public static final ModMetadata META = ModMetadata.builder(ID, "Essentials GG", "1.1.2")
             .author("MyCelium")
             .website("https://www.curseforge.com/minecraft/mc-mods/essentials-gg")
             .updateUrl("https://wiki.mycelium-gg.org/updates/essentialsgg.json")
@@ -95,23 +95,35 @@ public final class EssentialsGG {
 
         ConfigBuilder builder = Mycel.config(META);
         // 2: values turned red and error text softer; only untouched colors move along.
-        builder.schemaVersion(2).migrate(1, json -> {
+        builder.schemaVersion(3).migrate(1, json -> {
             if (json.get("theme") instanceof JsonObject theme) {
                 replaceColor(theme, "value", "#D2A8FF", "#FF5555");
                 replaceColor(theme, "error", "#EF5350", "#FF8A80");
+            }
+        }).migrate(2, json -> {
+            // 3: the Mycel 1.6 palette (red tag, white text, green ok, rose errors); custom colors stay.
+            if (json.get("theme") instanceof JsonObject theme) {
+                replaceColor(theme, "text", "#E6E6E6", "#F4F4F5");
+                replaceColor(theme, "value", "#FF5555", "#F4F4F5");
+                replaceColor(theme, "ok", "#7EE787", "#4ADE80");
+                replaceColor(theme, "error", "#FF8A80", "#F87171");
+                replaceColor(theme, "warn", "#FFA657", "#FBBF24");
+                replaceColor(theme, "muted", "#8B949E", "#C4C4CC");
+                replaceColor(theme, "accent", "#79B8FF", "#F4F4F5");
+                replaceColor(theme, "brand", "#EF5350", "#FF3B3B");
             }
         });
         enabled = builder.booleanValue("enabled", true, "Master switch for Essentials GG.");
         Module.define(builder);
         builder.category("theme");
-        themeText = builder.stringValue("text", "#E6E6E6", 7, "<text> in messages: body text.");
-        themeValue = builder.stringValue("value", "#FF5555", 7, "<val>: names, numbers, places.");
-        themeOk = builder.stringValue("ok", "#7EE787", 7, "<ok>: on, ready and other good news.");
-        themeError = builder.stringValue("error", "#FF8A80", 7, "<err>: error messages.");
-        themeWarn = builder.stringValue("warn", "#FFA657", 7, "<warn>: warnings.");
-        themeMuted = builder.stringValue("muted", "#8B949E", 7, "<muted>: brackets, hints, separators.");
-        themeAccent = builder.stringValue("accent", "#79B8FF", 7, "<accent>: buttons and links.");
-        themeBrand = builder.stringValue("brand", "#EF5350", 7, "<brand>: the prefix.");
+        themeText = builder.stringValue("text", "#F4F4F5", 7, "<text> in messages: body text.");
+        themeValue = builder.stringValue("value", "#F4F4F5", 7, "<val>: names, numbers, places.");
+        themeOk = builder.stringValue("ok", "#4ADE80", 7, "<ok>: on, ready and other good news.");
+        themeError = builder.stringValue("error", "#F87171", 7, "<err>: error messages.");
+        themeWarn = builder.stringValue("warn", "#FBBF24", 7, "<warn>: warnings.");
+        themeMuted = builder.stringValue("muted", "#C4C4CC", 7, "<muted>: brackets, hints, separators.");
+        themeAccent = builder.stringValue("accent", "#F4F4F5", 7, "<accent>: buttons and links.");
+        themeBrand = builder.stringValue("brand", "#FF3B3B", 7, "<brand>: the Essentials tag at the start of messages.");
         builder.root();
         Teleports.config(builder);
         Homes.config(builder);
@@ -125,6 +137,7 @@ public final class EssentialsGG {
         Sidebar.config(builder);
         Discord.config(builder);
         config = builder.build();
+        EssentialsStats.start();
 
         Admin.commands();
         Teleports.commands();

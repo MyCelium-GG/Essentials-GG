@@ -1,5 +1,5 @@
 {
-  "prefix": "<muted>[</muted><red>Essentials</red><muted>]</muted> ",
+  "prefix": "<brand><b>Essentials</b></brand> <muted>\u00bb</muted> ",
 
   "time.d": "d",
   "time.h": "h",
@@ -226,22 +226,24 @@
     "<muted>3.</muted> <text>Sem trapaças ou exploits."
   ],
 
-  "sidebar.title": "<gradient:#EF5350:#FFA657><b>Essentials GG</b></gradient>",
+  "sidebar.title": "<brand><b>Essentials GG</b></brand>",
   "sidebar.lines": [
     "",
-    "<text>Jogador <val>{name}",
-    "<text>Saldo <val>{balance}",
-    "<text>Casas <val>{homes}",
+    "<text><u>Você</u>",
+    "<muted>›</muted> <text>{name}",
+    "<muted>›</muted> <muted>Saldo</muted> <val>{balance}",
+    "<muted>›</muted> <muted>Casas</muted> <val>{homes}",
     " ",
-    "<text>Online <val>{online}/{max}",
-    "<text>Ping <val>{ping} ms",
+    "<text><u>Servidor</u>",
+    "<muted>›</muted> <muted>Online</muted> <val>{online}/{max}",
+    "<muted>›</muted> <muted>Ping</muted> <val>{ping} ms",
     "  ",
     "<muted>mycelium-gg.org"
   ],
   "sidebar.on": "{prefix}<text>Barra lateral <ok>ligada</ok>.",
   "sidebar.off": "{prefix}<text>Barra lateral <err>desligada</err>.",
-  "tab.header": "<newline><gradient:#EF5350:#FFA657><b>Essentials GG</b></gradient><newline>",
-  "tab.footer": "<newline><text>Online <val>{online}/{max}</val> <muted>·</muted> <text>Ping <val>{ping} ms</val><newline>",
+  "tab.header": "<newline><brand><b>Essentials GG</b></brand><newline>",
+  "tab.footer": "<newline><muted>Online</muted> <val>{online}/{max}</val>   <muted>Ping</muted> <val>{ping} ms</val><newline>",
   "tab.name": "{group_prefix}{name}{group_suffix}{afk}",
   "tab.afk": " <muted>[AFK]",
 

@@ -229,6 +229,9 @@ public final class Cmd {
             Lang.send(context.getSource(), "error.internal");
             return 0;
         }
+        if (result > 0) {
+            my.celium.org.essentialsgg.EssentialsStats.command(def.name);
+        }
         if (cooled && result > 0) {
             COOLDOWNS.computeIfAbsent(def.name, k -> new HashMap<>()).put(player.getUUID(), now + cooldown * 1000L);
         }

@@ -147,6 +147,13 @@ and usable in every message.
 4. Bans need no import: copy Paper's `banned-players.json` over, it is the
    same file. `/tempban` writes vanilla bans with an end date.
 
+## Anonymous stats
+
+Essentials GG sends anonymous stats (which modules are on, which commands get used, and errors in its own code) to its FastStats project through
+Mycel. It follows Mycel's choice exactly: the one-time screen in your own
+game, `shareStats` / `shareErrors` in `config/mycel.json` on servers.
+Details: https://wiki.mycelium-gg.org/privacy#stats-essentialsgg
+
 ## Building
 
 JDK 25, then:
