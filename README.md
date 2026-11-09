@@ -13,6 +13,8 @@
   <a href="https://github.com/MyCelium-GG/Essentials-GG/blob/main/LICENSE"><img src="https://img.shields.io/github/license/MyCelium-GG/Essentials-GG?style=flat-square&color=F2C14E" alt="License"></a>
 </p>
 
+<a href="https://www.curseforge.com/minecraft/mc-mods/mycel"><img src="https://raw.githubusercontent.com/MyCelium-GG/Essentials-GG/2339bc2f16a1/docs/img/banners/mycel-required.svg" alt="Mycel is required: this mod needs the Mycel library to run. Install Mycel next to it, for the same Minecraft version and loader. Download it from CurseForge." width="100%"></a>
+
 ![About the mod](https://raw.githubusercontent.com/MyCelium-GG/Essentials-GG/ec035abcbfd9/docs/img/banners/about-the-mod.svg)
 
 <img src="https://raw.githubusercontent.com/MyCelium-GG/Essentials-GG/ec035abcbfd9/docs/img/banners/about.svg" alt="Essentials GG Homes, warps, spawn, TPA, back, random teleport, kits, an economy, nicknames, chat with hex colors and gradients, moderation, AFK, a sidebar and tab list, Discord webhooks and an EssentialsX importer, around 90 commands in all. Every module can be switched off, every message is editable, each player picks their language. Server side: vanilla clients join as usual." width="100%">
