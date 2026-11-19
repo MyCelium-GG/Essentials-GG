@@ -43,6 +43,17 @@ public final class EssentialsGGNeoForge {
 
     public EssentialsGGNeoForge(@SuppressWarnings("unused") IEventBus modBus,
             @SuppressWarnings("unused") ModContainer container) {
+        if (!net.neoforged.fml.ModList.get().isLoaded("mycel")) {
+            my.celium.org.essentialsgg.MissingMycel.logOnce();
+            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.addListener(
+                    (net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent event) -> {
+                if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
+                    my.celium.org.essentialsgg.MissingMycel.tell(player);
+                }
+            });
+            return;
+        }
+        my.celium.org.essentialsgg.ModGate.open();
         EssentialsGG.init();
         NeoForge.EVENT_BUS.addListener((ServerAboutToStartEvent event) -> EssentialsGG.serverStarting(event.getServer()));
         NeoForge.EVENT_BUS.addListener((ServerTickEvent.Post event) -> EssentialsGG.tickServer(event.getServer()));

@@ -26,7 +26,8 @@ side="BOTH"
 
 [[dependencies.${mod_id}]]
 modId="mycel"
-type="required"
+# Optional so the game still starts without it: the mod then idles and tells players Mycel is missing.
+type="optional"
 versionRange="[${mycel_version},)"
 ordering="AFTER"
 side="BOTH"

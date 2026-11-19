@@ -19,10 +19,15 @@
     "fabricloader": ">=${fabric_loader_version}",
     "fabric-api": "*",
     "minecraft": "~${minecraft_line}",
-    "java": ">=${java_version}",
-    "mycel": ">=${mycel_version}"
+    "java": ">=${java_version}"
   },
   "suggests": {
     "luckperms": "*"
+  },
+  "recommends": {
+    "mycel": ">=${mycel_version}"
+  },
+  "breaks": {
+    "mycel": "<${mycel_version}"
   }
 }

@@ -41,6 +41,16 @@ public final class EssentialsGGForge {
     private static final Map<String, PermissionNode<String>> META = new HashMap<>();
 
     public EssentialsGGForge(@SuppressWarnings("unused") FMLJavaModLoadingContext context) {
+        if (!net.minecraftforge.fml.ModList.isLoaded("mycel")) {
+            my.celium.org.essentialsgg.MissingMycel.logOnce();
+            net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent.BUS.addListener(event -> {
+                if (event.getEntity() instanceof net.minecraft.server.level.ServerPlayer player) {
+                    my.celium.org.essentialsgg.MissingMycel.tell(player);
+                }
+            });
+            return;
+        }
+        my.celium.org.essentialsgg.ModGate.open();
         EssentialsGG.init();
         ServerAboutToStartEvent.BUS.addListener(event -> EssentialsGG.serverStarting(event.getServer()));
         TickEvent.ServerTickEvent.Post.BUS.addListener(event -> EssentialsGG.tickServer(event.server()));

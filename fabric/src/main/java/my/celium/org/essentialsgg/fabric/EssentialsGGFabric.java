@@ -31,6 +31,13 @@ import net.minecraft.world.entity.Entity;
 public final class EssentialsGGFabric implements ModInitializer {
     @Override
     public void onInitialize() {
+        if (!net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("mycel")) {
+            my.celium.org.essentialsgg.MissingMycel.logOnce();
+            net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.JOIN.register(
+                    (handler, sender, server) -> my.celium.org.essentialsgg.MissingMycel.tell(handler.getPlayer()));
+            return;
+        }
+        my.celium.org.essentialsgg.ModGate.open();
         EssentialsGG.init();
         ServerLifecycleEvents.SERVER_STARTING.register(EssentialsGG::serverStarting);
         ServerTickEvents.END_SERVER_TICK.register(EssentialsGG::tickServer);
