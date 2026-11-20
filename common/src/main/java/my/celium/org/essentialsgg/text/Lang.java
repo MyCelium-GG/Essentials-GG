@@ -50,7 +50,7 @@ import net.minecraft.server.level.ServerPlayer;
 public final class Lang {
     public static final String DEFAULT = "en_us";
     /** Languages shipped in the jar. */
-    public static final List<String> BUNDLED = List.of("en_us", "de_de", "es_es", "fr_fr", "nl_nl", "pt_br", "ru_ru", "pl_pl");
+    public static final List<String> BUNDLED = List.of("en_us", "de_de", "es_es", "fr_fr", "nl_nl", "pt_br", "ru_ru", "pl_pl", "it_it");
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().setPrettyPrinting().create();
 
     private static volatile Map<String, Map<String, String>> languages = Map.of();
