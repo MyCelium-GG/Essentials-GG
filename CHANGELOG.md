@@ -6,6 +6,11 @@ Essentials GG is versioned semantically (`MAJOR.MINOR.PATCH`).
 It runs on Minecraft 26.3, 26.2 and 26.1 (Fabric + Forge + NeoForge, Java 25) and requires
 [Mycel](https://github.com/MyCelium-GG/MyCel-Lib) (`my.celium.org`).
 
+## [1.2.1] - 2026-11-24
+
+### Added
+- Russian, Polish, Italian, Japanese and Simplified Chinese, so Essentials GG now speaks 11 languages.
+
 ## [1.2.0] - 2026-11-19
 
 ### Added
